@@ -77,7 +77,7 @@ if __name__ == "__main__":
 
 
     """
-    CODE DESCRIPTION:
+    CODE DESCRIPTION:q
     - I only needed numpy to run the code.
     - I created one helper function, conduct_experiment, to run the MSE.
     - Each experiment does the following:
