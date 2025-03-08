@@ -22,6 +22,7 @@ def find_longest_match_search_buffer(search_buffer, lookahead_buffer):
     If no match, returns (-1, -1).
     """
     # Start with longest prefix in lookahead buffer, and continue shortening it
+    print(search_buffer, " ", lookahead_buffer)
     for length in range(len(lookahead_buffer), 0, -1):
         # See if the prefix exists in the search buffer
         prefix = lookahead_buffer[:length]
@@ -45,10 +46,10 @@ def compress_LZ77(value, search_buffer_size, lookahead_buffer_size):
     Search buffer acts like a prior dictionary of what we have seen.
     Lookahead buffer is our current index's character, and some later characters.
     Goal: for current lookahead buffer, match its longest prefix of chars with search buffer
-    If we find a match, write (offset, length, prefix) 
-    If no match, write (0,0,current character)
-    Then, move lookahead buffer to go past the prefix we looked at
-    Likewise, move the search buffer same amount to be behind current char index
+    If we find a match, write (offset, length, next character) 
+    If no match, write (0,0,next character)
+    Then, move lookahead buffer to go past the prefix + next character we looked at
+    Likewise, move the search buffer same amount
 
     Exmaple:
     AABABAC
@@ -64,8 +65,9 @@ def compress_LZ77(value, search_buffer_size, lookahead_buffer_size):
     search_buffer = "" 
     lookahead_buffer = value[:lookahead_buffer_size] if len(value) > lookahead_buffer_size else value
     char_index = 0 # what value are we currently looking at
+    print(value)
 
-    while char_index < len(value): # NOTE: may be lookahead-buffer
+    while char_index < len(value) and lookahead_buffer != "":
         # Find the longest match
         pos, length, prefix = find_longest_match_search_buffer(search_buffer, lookahead_buffer)
         # If match exists...
@@ -73,22 +75,30 @@ def compress_LZ77(value, search_buffer_size, lookahead_buffer_size):
             # Step 1: create output
             # for offset, last char = 1 offset, 2nd to last char = 2 offset, etc.
             offset = len(search_buffer) - pos
-            curr_output = (offset, length, prefix)
+            # find the next character AFTER the matched prefix
+            next_char_index = char_index + length  # Index of the next character
+            next_char = value[next_char_index] if next_char_index < len(value) else '' 
+            print("next", char_index, length, next_char)
+            curr_output = (offset, length, next_char)
             output.append(curr_output)
+                
             # Step 2: update search buffer
             # make sure search buffer doesn't exceed max search buffer size
-            search_buffer += prefix
+            search_buffer = search_buffer + prefix + next_char
             if len(search_buffer) > search_buffer_size:
                 num_delete = len(search_buffer) - search_buffer_size
                 search_buffer = search_buffer[num_delete:]
+
             # Step 3: update lookahead buffer
             # Either add so we get lookahead_buf_size # of values or add remaining chars
-            lookahead_buffer = lookahead_buffer[length:]
-            char_index += length    # update the char_index to reflect the match length
-            i = char_index          # add each new char one by one
+            lookahead_buffer = lookahead_buffer[length+1:] # length+1 for prefix+new character
+            char_index = char_index + length + 1            # update the char_index to reflect the match length
+            i = char_index                                  # add each new char one by one
             while len(lookahead_buffer) < lookahead_buffer_size and i + lookahead_buffer_size <= len(value):
-                lookahead_buffer += value[char_index+lookahead_buffer_size-1]
+                print("adding...", char_index+lookahead_buffer_size, value[char_index], value[char_index+lookahead_buffer_size])
+                lookahead_buffer += value[char_index+lookahead_buffer_size]
                 i += 1
+
         # If match does not exist...
         else:
             # Step 1: create output
@@ -106,7 +116,6 @@ def compress_LZ77(value, search_buffer_size, lookahead_buffer_size):
             char_index += 1
             if char_index + lookahead_buffer_size <= len(value):
                 lookahead_buffer += value[char_index+lookahead_buffer_size-1]
-        #print("P", prefix, "OUT", curr_output, "S", pt2, "L", pt1)
     return output
 
 
@@ -165,7 +174,7 @@ def compress_LZ78(value, lookahead_buffer_size):
             char_index += length + 1
         # If no match found...
         else:
-            # Step 1: create output (0, current character)
+            # Step 1: create output (0, curr character)
             next_char = lookahead_buffer[0]
             curr_output = (0, next_char)
             output.append(curr_output)
@@ -213,10 +222,9 @@ def compress_LZW(value):
 # +++++++++++++++++++ Main Function +++++++++++++++++++ #
 
 if __name__ == "__main__":
-    # aababcaabbac
     # abracadabraarbadacarba
     # radradra
-    str_to_compress = "radradra"
+    str_to_compress = "abracadabraarbadacarba"
     window_size = 6
     lookahead_buffer_size = 6
     LZ77_compressed = compress_LZ77(str_to_compress, window_size, lookahead_buffer_size)
