@@ -13,7 +13,7 @@ import numpy as np
 
 
 # ++++++++++++++++++++ Functions +++++++++++++++++++++ #
-matrix = np.array([ [0,0,1,1,0,1],
+A = np.array([      [0,0,1,1,0,1],
                     [0,0,1,0,0,1],
                     [0,0,0,1,0,1],
                     [0,1,1,0,0,0],
@@ -23,48 +23,48 @@ matrix = np.array([ [0,0,1,1,0,1],
 
 
 # +++++++++++++++++ Helper Functions +++++++++++++++++ #
-
-def compute_pagerank(delta, epsilon, A, E, S):
+def compute_pagerank(A, d=0.95, e=1e-8, max_iter=100):
     """
     Compute PageRank from adjacency matrix.
-    Follow from Section 2.6 of PageRank
-    delta:      user-tuned parameter
-    epsilon:    user-tuned parameter
-    A:          adjacency matrix
-    E:          typically, a uniform vector over all pages with value epsilon
-    S:          any vector over pages (can be E)
+    Follows from tutorial: https://www.youtube.com/watch?v=P8Kt6Abq_rM
+    One can also follow the logic from 2.6 of PageRank paper, then add damping for scalability
+    A:          adjacency matrix where A[j][i] = 1 if j points to i
+    d:          damping parameter, set to 0.95 (= 1 makes little difference)
+    e:          epsilon, for quick-stop convergence
+    max_iter:   if we're not converging fast enough, stop after this # iterations
     """
-    # Initialize R
-    R = S.copy() / np.linalg.norm(S, ord=1)
-    iteration = 0
-
-    # While True and break mimic a 'do-while' loop to model pseudocode from paper
-    while True:
-        R_next = (A @ R) 
-        d = np.linalg.norm(R, ord=1) - np.linalg.norm(R_next, ord=1)
-        R_next = R_next + d * E
-        # Normalize R_next to allow for better convergence
-        R_next = R_next / np.linalg.norm(R_next, ord=1)  
-        delta = np.linalg.norm(R_next - R, ord=1)
-        # If converged, stop
-        if delta < epsilon:
-            print(f"PageRank conversion reached after {iteration} iterations!")
+    # Step 1: set the initial PageRank to 1/N for each page
+    N = A.shape[0]  # number of pages/nodes
+    PR = np.ones(N) / N
+    # Step 2: iterate for a maximum number of iterations or until convergence
+    for _ in range(max_iter):
+        # create a new PR vector to store updated values
+        new_PR = np.zeros(N)
+        # for each page...
+        for i in range(N):
+            # sum of the PageRank contributions from all pages pointing to page i
+            for j in range(N):
+                # if page j points to page i...
+                if A[j][i] == 1:  
+                    # A[j] sums up all 1s in that row, where A[j][i] = 1 if j points to i
+                    # This includes this page so that the sum is >= 1 (no division by 0)
+                    new_PR[i] += PR[j] / np.sum(A[j])
+            # apply the damping factor (d)
+            new_PR[i] = (1 - d) / N + d * new_PR[i]
+        # check for convergence
+        # if the difference between new PR and old PR is below tolerance, no need to continue
+        if np.linalg.norm(new_PR - PR, 1) < e:
             break
-        # Detect blow-up case
-        if np.isnan(delta):
-            print("PageRank NaN detected! Stopping.")
-            break
-        # If not converged, update R for next iteration
-        R = R_next
-        iteration += 1
-    return R
+        # update PR for the next iteration
+        PR = new_PR
+    return PR
 
-def compute_hubsauthorities(A, epsilon):
+def compute_hubsauthorities(A, e=1e-8):
     """
     Compute Hub and Authority weights from adjacency matrix.
     Follow from personal lecture notes.
-    A:          adjacency matrix
-    epsilon:    user-tuned parameter
+    A:          adjacency matrix where A[j][i] = 1 if j points to i
+    e:          epsilon, for quick-stop convergence
     """
     # Initialize hub (h) and authority (a) scores uniformly
     # In paper, they're called y and x, but let's just use intuitive notation
@@ -76,7 +76,6 @@ def compute_hubsauthorities(A, epsilon):
     a /= np.linalg.norm(a, 2)
     # Keep track of iteration value for output-purposes
     iteration = 0
-
     while True:
         # Update authority scores: a = A^T h
         # Normalize weights to allow for convergence
@@ -87,32 +86,20 @@ def compute_hubsauthorities(A, epsilon):
         h_new = A @ a_new
         h_new /= np.linalg.norm(h_new, 2)
         # If convergence, return
-        if np.linalg.norm(a_new - a, 1) < epsilon and np.linalg.norm(h_new - h, 1) < epsilon:
-            print(f"Hubs Authorities conversion reached after {iteration} iterations!")
+        if np.linalg.norm(a_new - a, 2) < e and np.linalg.norm(h_new - h, 2) < e:
             break
         # If no convergence, update for next iteration
         a, h = a_new, h_new
         iteration += 1
-    return a, h
+    return h, a
 
 
 
 # +++++++++++++++++++ Main Functions +++++++++++++++++++ #
 
 if __name__ == "__main__":
-    # Establish variables
-    # Assumptions:
-        # E is uniform over pages with value of epsilon
-        # S = E
-        # epsilon is some small number
-        # delta starts off high with some dampening-effect (ie != 1)
-    delta = 0.85        
-    epsilon = 0.002
-    A = matrix
-    N = matrix.shape[0]  # Number of pages
-    E = np.full(matrix.shape[0], epsilon)
-    S = E
-    pageranks = compute_pagerank(delta, epsilon, A, E, S)
-    print(f"PageRank ranks:\n{pageranks}\n\n")
-    hub_weights, authority_weights = compute_hubsauthorities(A, epsilon)
-    print(f"Hub weights:\n{hub_weights}\nAuthority weights:\n{authority_weights}")
+    pagerank_scores = compute_pagerank(A)
+    print("PageRank Scores:", pagerank_scores)
+    hub_weights, authority_weights = compute_hubsauthorities(A)
+    print(f"\nHub Weights: {hub_weights}")
+    print(f"\nAuthority weights: {authority_weights}")
