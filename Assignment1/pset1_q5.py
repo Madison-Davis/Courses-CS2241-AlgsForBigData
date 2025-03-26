@@ -28,12 +28,18 @@ def arithmetic_encoding(str_to_encode, probs, chars):
         window_length = window[1] - window[0]
         # compute start for however many levels we've gone down so far
         start = window[0] + sum(window_length * probs[i] for i in range(char_index))
+        eq0 = " + ".join(f"{window_length:.5f} * {probs[i]}" for i in range(char_index))
+        eq1 = f"{window[0]:.5f}" + (f" + {eq0}" if eq0 else "")
+        tabs = f"\t" if eq0 else f"\t\t\t"
         # the end is simply where we start times the 'width'/prob of that range
         # and finally multiplied by window length
         end = start + window_length * probs[char_index]
+        eq2 = f"{start:.5f} + {window_length:.5f} * {probs[char_index]}"
         # update window to this new location
         window = [start, end]
-        print(f"Step {i}, Window For {char}: [{"{:.5f}".format(window[0])},{"{:.5f}".format(window[1])}]")
+        print(f"Step {i}, Window For {char}: [{"{:.6f}".format(window[0])},{"{:.5f}".format(window[1])}]")
+        print(f"Start Window: {eq1}")
+        print(f"End Window: {eq2}\n\n")
     return random.uniform(window[0], window[1])
 
 def arithmetic_decoding(val_to_decode, num_levels, probs, chars, decoded_str=""):
@@ -54,7 +60,10 @@ def arithmetic_decoding(val_to_decode, num_levels, probs, chars, decoded_str="")
             # if the value is in one of the sub_windows...
             # normalize value to be within the new selected range, and continue on!
             new_encoded_val = (val_to_decode - window_start) / (window_end - window_start)
-            print(f"Level {num_levels} \tValue {val_to_decode:.10f} \tChar Windows {sub_windows} \tString {decoded_str+char}")
+            eq1 = f"({val_to_decode:.5f} - {window_start}) / ({window_end} - {window_start}) = {new_encoded_val:.5f}"
+
+            print(f"Level {num_levels} \tValue {val_to_decode:.10f} \tChar {char} With Window [{window_start},{window_end}) \tString {decoded_str+char}")
+            print(f"Level {num_levels} \tNext Level's Value \t{eq1}\n")
             return arithmetic_decoding(new_encoded_val, num_levels - 1, probs, chars, decoded_str + char)
 
 

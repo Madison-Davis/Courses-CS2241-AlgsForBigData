@@ -17,18 +17,10 @@ For this problem, you may use any libraries or tools
 
 # +++++++++++++++++ Installs/Imports +++++++++++++++++ #
 import numpy as np
+from scipy.linalg import hadamard
 
 
 # ++++++++++++++++++++ Functions +++++++++++++++++++++ #
-
-def make_hadamard_matrix(d):
-    """Generate Hadamard matrix of size d."""
-    # if d = 1, let H_1 = [1]
-    H = np.array([[1]]) 
-    # recursively build up Hadamard matrix to size d if d !=1
-    while H.shape[0] < d:
-        H = np.block([[H, H], [H, -H]]) 
-    return H
 
 def conduct_experiment(d=1024):
     """ 
@@ -36,26 +28,25 @@ def conduct_experiment(d=1024):
     described in the problem above. 
     d: dimension
     """
-    # Step 1: generate a random point on the d-dimensional unit sphere
-    point = np.random.randn(d)
-    point = point / np.linalg.norm(point)
+    # Step 1: generate a random vector point on the d-dimensional unit sphere
+    original_vec = np.random.randn(d)
+    original_vec = original_vec / np.linalg.norm(original_vec)
 
     # Step 2: rotate point using RHT
     # To do RHT, create a Hadamard matrix
-    H = make_hadamard_matrix(d)
-    rotated_point = H @ point
+    H = hadamard(d) / np.sqrt(d)
+    rotated_vec = H @ original_vec
 
     # Step 3: quantize point's coordinates to either -1 or 1
     # Do so by rounding sign, not stochastic
-    quantized_point = np.sign(rotated_point)
+    quantized_vec = np.sign(rotated_vec)
 
     # Step 4: inverse the rotation using RHT
-    # Again, this requires us to inverse our Hadamard matrix
-    H_inv = np.linalg.inv(H)
-    result_point = H_inv @ quantized_point
+    # This requires us to inverse our Hadamard matrix
+    recovered_vec = H.T @ quantized_vec
 
     # Step 5: determine MSE between result_point and point
-    return np.mean((point - result_point) ** 2)
+    return np.mean((recovered_vec - original_vec) ** 2)
 
 
 
@@ -76,25 +67,25 @@ if __name__ == "__main__":
     print(f"Max MSE:\t {np.max(mse_data)}")
 
 
-    """
-    CODE DESCRIPTION:q
-    - I only needed numpy to run the code.
-    - I created one helper function, conduct_experiment, to run the MSE.
-    - Each experiment does the following:
-        - Step 1: generate a random point on the d-dimensional unit sphere
-        - Step 2: rotate point using RHT
-        - Step 3: quantize point's coordinates to either -1 or 1
-        - Step 4: inverse the rotation using RHT
-        - Step 5: determine MSE
-    
-    - I used the following functions within numpy to help:
-        .randn(d)            creates a random-number vector of size d
-        .linalg.norm(v)      computes the norm of vector v
-        .sign(v)             round values in vector v to either -1 or 1
-        .linalg.inv(m)       inverse matrix m
-        .mean(data)          find mean value within data   
-        .min(data)           find min value within data
-        .max(data)           find max value within data
-    - Other functions I used:
-        @                    allows for matrix multiplication
-    """
+"""
+CODE DESCRIPTION PARAGRAPH:
+- I only needed numpy and scipy to run the code.
+- I created one helper function, conduct_experiment, to run the MSE.
+- Each experiment does the following:
+    - Step 1: generate a random point on the d-dimensional unit sphere
+    - Step 2: rotate point using RHT
+    - Step 3: quantize point's coordinates to either -1 or 1
+    - Step 4: inverse the rotation using RHT
+    - Step 5: determine MSE
+
+- I used the following functions to help:
+    .randn(d)            creates a random-number vector of size d
+    .linalg.norm(v)      computes the norm of vector v
+    .sign(v)             round values in vector v to either -1 or 1
+    .linalg.hadamdard(d) computes a hadamdard matrix of dimension d
+    .mean(data)          find mean value within data   
+    .min(data)           find min value within data
+    .max(data)           find max value within data
+    @                    allows for matrix multiplication
+    .T                   allows for matrix transpose (in our case, inversion)
+"""

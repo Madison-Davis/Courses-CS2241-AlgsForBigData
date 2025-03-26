@@ -83,7 +83,7 @@ def compute_hubsauthorities(A, e=1e-8):
         a_new /= np.linalg.norm(a_new, 2)
         # Update hub scores: h = A a
         # Normalize weights to allow for convergence
-        h_new = A @ a_new
+        h_new = A @ a
         h_new /= np.linalg.norm(h_new, 2)
         # If convergence, return
         if np.linalg.norm(a_new - a, 2) < e and np.linalg.norm(h_new - h, 2) < e:
