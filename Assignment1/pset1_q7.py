@@ -29,7 +29,7 @@ def conduct_experiment(d=1024):
     d: dimension
     """
     # Step 1: generate a random vector point on the d-dimensional unit sphere
-    original_vec = np.random.randn(d)
+    original_vec = np.random.normal(0,1,d)
     original_vec = original_vec / np.linalg.norm(original_vec)
 
     # Step 2: rotate point using RHT
@@ -39,7 +39,10 @@ def conduct_experiment(d=1024):
 
     # Step 3: quantize point's coordinates to either -1 or 1
     # Do so by rounding sign, not stochastic
+    # As Per Ed Post, we should nomralize after quantization
+    # because quantizing no longer has it on unit sphere
     quantized_vec = np.sign(rotated_vec)
+    quantized_vec /= np.linalg.norm(quantized_vec)
 
     # Step 4: inverse the rotation using RHT
     # This requires us to inverse our Hadamard matrix
